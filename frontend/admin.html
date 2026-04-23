@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - File Converter</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+      .stat-card { background: #f9f9f9; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #ddd; }
+      .stat-card h3 { margin: 0 0 10px; font-size: 16px; color: #555; }
+      .stat-card p { margin: 0; font-size: 24px; font-weight: bold; color: #333; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      .admin-controls { margin-top: 30px; padding: 20px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="nav-brand"><a href="/">Essential Converter</a> - Admin</div>
+      <div id="authNav" class="nav-links">
+        <button id="logoutBtn" class="secondary-btn">Logout</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Admin Dashboard</h1>
+      <p id="adminStatus"></p>
+      
+      <div class="stat-grid" id="statsGrid">
+        <div class="stat-card"><h3>Total Users</h3><p id="statUsers">-</p></div>
+        <div class="stat-card"><h3>Total Conversions</h3><p id="statConv">-</p></div>
+        <div class="stat-card"><h3>Successful</h3><p id="statSuccess">-</p></div>
+        <div class="stat-card"><h3>Failed</h3><p id="statFail">-</p></div>
+      </div>
+
+      <div class="admin-controls">
+        <h2>System Controls</h2>
+        <p>Manually trigger the cleanup script to delete files older than 3 hours.</p>
+        <button id="cleanupBtn">Run Cleanup Now</button>
+        <p id="cleanupStatus"></p>
+      </div>
+
+      <section>
+        <h2>Registered Users</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Registered At</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

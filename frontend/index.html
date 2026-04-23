@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Essential File Converter</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="nav-brand">Essential Converter</div>
+      <div id="authNav" class="nav-links">
+        <button id="loginBtn" class="secondary-btn">Login</button>
+        <button id="registerBtn" class="secondary-btn">Register</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Essential File Converter</h1>
+      <p>PDF/Word/Excel, image format, and MP4/MP3 conversion in one place.</p>
+
+      <form id="convertForm">
+        <div id="dropZone" class="drop-zone">
+          Drag and drop files here, or click to choose files.
+        </div>
+        <label>
+          Choose file(s)
+          <input id="fileInput" type="file" name="file" multiple required />
+        </label>
+
+        <ul id="selectedFiles"></ul>
+
+        <label>
+          Convert to
+          <select id="targetSelect" name="target" required>
+            <option value="">Select target format</option>
+          </select>
+        </label>
+
+        <button type="submit">Convert</button>
+      </form>
+
+      <p id="status"></p>
+      <div id="progressWrap" class="progress-wrap hidden" aria-live="polite">
+        <div class="progress-meta">
+          <span id="progressLabel">Progress</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <section>
+        <h2>Recent Conversions</h2>
+        <ul id="historyList"></ul>
+      </section>
+
+      <section>
+        <h2>Uploaded File Preview</h2>
+        <div id="inputPreview" class="preview-box">No file selected.</div>
+      </section>
+
+      <section>
+        <h2>Converted File Preview</h2>
+        <div id="outputPreview" class="preview-box">No converted file yet.</div>
+        <button id="downloadAllBtn" type="button" class="secondary-btn">Download Converted File(s)</button>
+      </section>
+    </main>
+
+    <!-- Auth Modals -->
+    <div id="authModal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close-modal" id="closeAuthModal">&times;</span>
+        <h2 id="authModalTitle">Login</h2>
+        <form id="authForm">
+          <label>
+            Username:
+            <input type="text" id="authUsername" required />
+          </label>
+          <label>
+            Password:
+            <input type="password" id="authPassword" required />
+          </label>
+          <button type="submit" id="authSubmitBtn">Submit</button>
+          <p id="authError" class="error-text hidden"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="/script.js"></script>
+  </body>
+</html>

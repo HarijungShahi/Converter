@@ -1,0 +1,205 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 15px 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.nav-brand {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.nav-brand a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-links {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Modals */
+.modal {
+  display: none; 
+  position: fixed; 
+  z-index: 1000; 
+  left: 0; 
+  top: 0; 
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; 
+  background-color: rgba(0,0,0,0.5); 
+}
+
+.modal.hidden {
+  display: none !important;
+}
+
+.modal:not(.hidden) {
+  display: block;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 10% auto; 
+  padding: 20px 30px;
+  border: 1px solid #888;
+  width: 400px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.close-modal {
+  color: #aaa;
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-modal:hover {
+  color: black;
+}
+
+.error-text {
+  color: #d93025;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+
+.container {
+  max-width: 700px;
+  margin: 30px auto;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+form {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.drop-zone {
+  border: 2px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  color: #334155;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.drop-zone.drag-over {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  border: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.secondary-btn {
+  background: #0f172a;
+}
+
+#status {
+  font-weight: 600;
+}
+
+.progress-wrap {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.progress-wrap.hidden {
+  display: none;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #334155;
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.25s ease;
+}
+
+ul {
+  padding-left: 18px;
+}
+
+#selectedFiles {
+  margin: 0;
+}
+
+.preview-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+  min-height: 70px;
+  margin-bottom: 10px;
+}
+
+.preview-box img,
+.preview-box video {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.preview-box iframe {
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  border-radius: 6px;
+  background: white;
+}
