@@ -324,8 +324,8 @@ form.addEventListener("submit", async (event) => {
         body: data,
         credentials: "include"
       });
-    } catch (_error) {
-      throw new Error("Could not reach server.");
+    } catch (fetchError) {
+      throw new Error(`Network error: ${fetchError.message || "Could not reach server"}`);
     }
 
     if (!res.ok) {

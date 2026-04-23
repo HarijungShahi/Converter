@@ -14,8 +14,9 @@ libre.convertWithOptionsAsync = util.promisify(libre.convertWithOptions);
 // LibreOffice can only run one conversion at a time — queue them
 let officeQueue = Promise.resolve();
 function queueOfficeConvert(fn) {
-  officeQueue = officeQueue.then(() => fn()).catch(() => fn());
-  return officeQueue;
+  const next = officeQueue.then(() => fn());
+  officeQueue = next.catch(() => {}); // keep queue moving even if one fails
+  return next;
 }
 
 // Clean up LibreOffice lock files that can cause hangs on Render
