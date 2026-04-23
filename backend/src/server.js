@@ -88,7 +88,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB max per file
+});
 const MAX_CONVERSION_MS = Number(process.env.MAX_CONVERSION_MS || 180000);
 
 async function safeLogConversion(payload) {
@@ -163,7 +166,7 @@ app.post("/api/convert", upload.single("file"), async (req, res) => {
   }
 
   let target = (req.body.target || "").toLowerCase().trim();
-  if (target === "docs" || target === "doc") {
+  if (target === "docs") {
     target = "docx";
   }
   if (!target) {
@@ -187,7 +190,26 @@ app.post("/api/convert", upload.single("file"), async (req, res) => {
     );
     await ensureOutputReady(result.outputPath);
 
-    try {
+    if (isCloudConfigured()) {
+      const outputFileName = `${path.parse(req.file.originalname).name}.${target}`;
+      const [cloudResult] = await Promise.all([
+        uploadToCloud(result.outputPath, outputFileName),
+        safeLogConversion({
+          inputName: req.file.originalname,
+          sourceExt,
+          targetExt: target,
+          outputName: path.basename(result.outputPath),
+          status: "success",
+          message: "Converted successfully",
+          userId: req.session.userId || null
+        }).catch(() => {})
+      ]);
+      const downloadUrl = await getCloudDownloadUrl(cloudResult);
+      if (!downloadUrl) {
+        return res.status(500).json({ error: "Cloud upload failed. Please try again." });
+      }
+      res.json({ downloadUrl, outputName: outputFileName });
+    } else {
       await safeLogConversion({
         inputName: req.file.originalname,
         sourceExt,
@@ -196,21 +218,9 @@ app.post("/api/convert", upload.single("file"), async (req, res) => {
         status: "success",
         message: "Converted successfully",
         userId: req.session.userId || null
-      });
-    } catch (logError) {
-      console.error("Success log skipped:", getErrorMessage(logError));
-    }
-
-    if (isCloudConfigured()) {
-      const outputFileName = `${path.parse(req.file.originalname).name}.${target}`;
-      const cloudKey = await uploadToCloud(result.outputPath, outputFileName);
-      const downloadUrl = await getCloudDownloadUrl(cloudKey, outputFileName);
-      res.json({ downloadUrl, outputName: outputFileName });
-    } else {
+      }).catch(() => {});
       res.download(result.outputPath, `${path.parse(req.file.originalname).name}.${target}`, (err) => {
-        if (err) {
-          console.error("Download error:", err.message);
-        }
+        if (err) console.error("Download error:", err.message);
       });
     }
   } catch (error) {

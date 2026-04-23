@@ -36,9 +36,10 @@ async function uploadToCloud(localFilePath, originalName) {
 
 async function getCloudDownloadUrl(cloudResult) {
   if (!isConfigured || !cloudResult || !cloudResult.secure_url) return null;
-  
-  // For raw files in Cloudinary, returning the secure_url directly triggers a download or opens it
-  return cloudResult.secure_url;
+
+  // Force browser download by appending fl_attachment to the Cloudinary URL
+  const url = cloudResult.secure_url;
+  return url.replace("/upload/", "/upload/fl_attachment/");
 }
 
 async function deleteFromCloud(publicId) {

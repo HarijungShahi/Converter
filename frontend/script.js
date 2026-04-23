@@ -44,8 +44,8 @@ const fallbackSupportedMap = {
   gif: ["png", "jpg", "jpeg", "webp"],
   bmp: ["png", "jpg", "jpeg", "webp"],
   mp4: ["mp3", "wav", "webm", "avi", "mkv"],
-  mp3: ["mp4", "wav"],
-  wav: ["mp3", "mp4"],
+  mp3: ["wav"],
+  wav: ["mp3"],
   avi: ["mp4", "mp3", "webm"],
   mkv: ["mp4", "mp3", "webm"],
   webm: ["mp4", "mp3", "avi", "mkv"]
@@ -307,73 +307,76 @@ form.addEventListener("submit", async (event) => {
   setProgress(0, "Preparing...");
 
   let successCount = 0;
-  let blockedByConnection = false;
   let failedCount = 0;
   const failureReasons = [];
-  try {
-    for (let index = 0; index < selectedFiles.length; index += 1) {
-      const file = selectedFiles[index];
-      const startPercent = (index / selectedFiles.length) * 100;
-      const endPercent = ((index + 1) / selectedFiles.length) * 100;
-      const inFileSpan = endPercent - startPercent;
 
-      setProgress(startPercent, `Uploading ${file.name}`);
-      const data = new FormData();
-      data.append("file", file);
-      data.append("target", target);
+  const completedCount = { value: 0 };
 
-      let res;
-      try {
-        setProgress(startPercent + inFileSpan * 0.2, `Converting ${file.name}`);
-        res = await fetch(`${API_BASE_URL}/api/convert`, {
-          method: "POST",
-          body: data,
-          credentials: "include"
-        });
-      } catch (_error) {
-        setStatus("Could not reach server. Start app with: npm run dev");
-        blockedByConnection = true;
-        break;
-      }
+  async function convertOne(file) {
+    const data = new FormData();
+    data.append("file", file);
+    data.append("target", target);
 
-      if (!res.ok) {
-        const err = await res
-          .json()
-          .catch(async () => ({ error: (await res.text().catch(() => "")) || "Unknown error" }));
-        const message = err.error || `Request failed (${res.status})`;
-        failureReasons.push(`${file.name}: ${message}`);
-        setStatus(`Failed on ${file.name}: ${message}`);
-        failedCount += 1;
-        setProgress(endPercent, `Skipped ${file.name}`);
-        continue;
-      }
-
-      setProgress(startPercent + inFileSpan * 0.85, `Downloading ${file.name}`);
-      const contentType = res.headers.get("content-type");
-      const baseName = file.name.replace(/\.[^/.]+$/, "");
-      let outputName = getDownloadNameFromResponse(res) || `${baseName}.${target}`;
-      
-      if (contentType && contentType.includes("application/json")) {
-        const data = await res.json();
-        if (data.downloadUrl) {
-          outputName = data.outputName || outputName;
-          pendingDownloads.push({ name: outputName, blobUrl: data.downloadUrl, size: 0 });
-        }
-      } else {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        pendingDownloads.push({ name: outputName, blobUrl: url, size: blob.size });
-      }
-
-      successCount += 1;
-      setProgress(endPercent, `Completed ${file.name}`);
+    let res;
+    try {
+      res = await fetch(`${API_BASE_URL}/api/convert`, {
+        method: "POST",
+        body: data,
+        credentials: "include"
+      });
+    } catch (_error) {
+      throw new Error("Could not reach server.");
     }
-  } catch (_error) {
-    setStatus("Conversion stopped unexpectedly. Please try again.");
-    return;
+
+    if (!res.ok) {
+      const err = await res
+        .json()
+        .catch(async () => ({ error: (await res.text().catch(() => "")) || "Unknown error" }));
+      throw new Error(err.error || `Request failed (${res.status})`);
+    }
+
+    const contentType = res.headers.get("content-type");
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    let outputName = getDownloadNameFromResponse(res) || `${baseName}.${target}`;
+
+    if (contentType && contentType.includes("application/json")) {
+      const json = await res.json();
+      if (json.downloadUrl) {
+        outputName = json.outputName || outputName;
+        return { name: outputName, blobUrl: json.downloadUrl, size: 0 };
+      }
+      throw new Error("Server returned no download URL.");
+    } else {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      return { name: outputName, blobUrl: url, size: blob.size };
+    }
   }
 
-  if (blockedByConnection) {
+  try {
+    const results = await Promise.allSettled(
+      selectedFiles.map(async (file) => {
+        const result = await convertOne(file);
+        completedCount.value += 1;
+        const percent = (completedCount.value / selectedFiles.length) * 100;
+        setProgress(percent, `Completed ${completedCount.value}/${selectedFiles.length}`);
+        return result;
+      })
+    );
+
+    results.forEach((result, i) => {
+      const file = selectedFiles[i];
+      if (result.status === "fulfilled" && result.value) {
+        pendingDownloads.push(result.value);
+        successCount += 1;
+      } else {
+        const message = result.reason?.message || "Unknown error";
+        failureReasons.push(`${file.name}: ${message}`);
+        failedCount += 1;
+      }
+    });
+  } catch (_error) {
+    setStatus("Conversion stopped unexpectedly. Please try again.");
     return;
   }
   setProgress(100, "All files processed");

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const util = require("util");
 const libre = require("libreoffice-convert");
 const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
@@ -8,33 +9,65 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const XLSX = require("xlsx");
 const pdfParse = require("pdf-parse");
 
-libre.convertWithOptionsAsync = require("util").promisify(libre.convertWithOptions);
+libre.convertWithOptionsAsync = util.promisify(libre.convertWithOptions);
+
+// LibreOffice can only run one conversion at a time — queue them
+let officeQueue = Promise.resolve();
+function queueOfficeConvert(fn) {
+  officeQueue = officeQueue.then(() => fn()).catch(() => fn());
+  return officeQueue;
+}
+
+// Clean up LibreOffice lock files that can cause hangs on Render
+async function clearLibreOfficeLocks() {
+  try {
+    const tmpDir = "/tmp";
+    const entries = await fs.promises.readdir(tmpDir).catch(() => []);
+    await Promise.all(
+      entries
+        .filter((e) => e.startsWith(".~lock") || e.startsWith("lu") || e.includes("libreoffice"))
+        .map((e) => fs.promises.rm(path.join(tmpDir, e), { recursive: true, force: true }).catch(() => {}))
+    );
+  } catch (_) {}
+}
 
 async function officeConvert(sourcePath, outputPath, targetExt, sourceExt) {
-  try {
-    const input = await fs.promises.readFile(sourcePath);
-    let options = {};
-    if (sourceExt === 'pdf') {
-      options.sofficeAdditionalArgs = ['--infilter=writer_pdf_import'];
+  return queueOfficeConvert(async () => {
+    await clearLibreOfficeLocks();
+    try {
+      const input = await fs.promises.readFile(sourcePath);
+      let options = {};
+      if (sourceExt === "pdf") {
+        options.sofficeAdditionalArgs = ["--infilter=writer_pdf_import"];
+      }
+      const done = await libre.convertWithOptionsAsync(input, `.${targetExt}`, undefined, options);
+      await fs.promises.writeFile(outputPath, done);
+      return outputPath;
+    } catch (error) {
+      const message = (error && error.message) || String(error || "");
+      if (/ENOENT|soffice/i.test(message)) {
+        throw new Error(
+          "LibreOffice is not installed or not found in PATH. Install LibreOffice and restart the server."
+        );
+      }
+      throw new Error(`Office conversion failed: ${message}`);
     }
-    const done = await libre.convertWithOptionsAsync(input, `.${targetExt}`, undefined, options);
-    await fs.promises.writeFile(outputPath, done);
-    return outputPath;
-  } catch (error) {
-    const message = (error && error.message) || String(error || "");
-    if (/ENOENT|soffice/i.test(message)) {
-      throw new Error(
-        "LibreOffice is not installed or not found in PATH. Install LibreOffice and restart the server."
-      );
-    }
-    throw new Error(`Office conversion failed: ${message}`);
-  }
+  });
 }
 
 function mediaConvert(sourcePath, outputPath) {
   return new Promise((resolve, reject) => {
-    ffmpeg(sourcePath)
-      .output(outputPath)
+    const ext = path.extname(outputPath).replace(".", "").toLowerCase();
+    let cmd = ffmpeg(sourcePath).output(outputPath);
+
+    // Use fast preset for video, skip video stream for audio-only outputs
+    if (["mp3", "wav"].includes(ext)) {
+      cmd = cmd.noVideo();
+    } else {
+      cmd = cmd.outputOptions(["-preset ultrafast", "-crf 28"]);
+    }
+
+    cmd
       .on("end", () => resolve(outputPath))
       .on("error", (error) => {
         const message = (error && error.message) || String(error || "");
@@ -69,7 +102,20 @@ async function pdfToExcel(sourcePath, outputPath) {
 }
 
 async function imageConvert(sourcePath, outputPath) {
-  await sharp(sourcePath).toFile(outputPath);
+  const ext = path.extname(outputPath).replace(".", "").toLowerCase();
+  let pipeline = sharp(sourcePath, { failOnError: false });
+
+  if (ext === "jpg" || ext === "jpeg") {
+    pipeline = pipeline.jpeg({ quality: 85, mozjpeg: true });
+  } else if (ext === "png") {
+    pipeline = pipeline.png({ compressionLevel: 6 });
+  } else if (ext === "webp") {
+    pipeline = pipeline.webp({ quality: 85 });
+  } else if (ext === "tiff" || ext === "tif") {
+    pipeline = pipeline.tiff({ compression: "lzw" });
+  }
+
+  await pipeline.toFile(outputPath);
   return outputPath;
 }
 
@@ -85,8 +131,8 @@ const supportedMap = {
   gif: ["png", "jpg", "jpeg", "webp"],
   bmp: ["png", "jpg", "jpeg", "webp"],
   mp4: ["mp3", "wav", "webm", "avi", "mkv"],
-  mp3: ["mp4", "wav"],
-  wav: ["mp3", "mp4"],
+  mp3: ["wav"],
+  wav: ["mp3"],
   avi: ["mp4", "mp3", "webm"],
   mkv: ["mp4", "mp3", "webm"],
   webm: ["mp4", "mp3", "avi", "mkv"]
