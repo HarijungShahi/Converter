@@ -1,1 +1,21 @@
-node_modules
+# Global dependencies
+node_modules/
+
+# Global environments
+.env
+
+# Root test and output files
+uploads/
+outputs/
+test_files/
+test_outputs/
+test*.js
+move-files.js
+*.mp3
+*.mp4
+*.docx
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
