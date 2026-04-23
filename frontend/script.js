@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000"; // Change to production URL later
+const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:3000" : ""; // Uses vercel.json rewrite in production
 
 const form = document.getElementById("convertForm");
 const statusEl = document.getElementById("status");
